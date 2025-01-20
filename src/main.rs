@@ -4,6 +4,7 @@ use std::sync::Arc;
 #[allow(warnings)]
 mod prisma;
 mod routes;
+mod db;
 
 #[tokio::main]
 async fn main() {
