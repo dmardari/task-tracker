@@ -26,6 +26,14 @@ $ cargo run --bin task-tracker
 5. Use the task tracker
 Use your REST client of choise (e.g. Postman). The following endpoints are available:
 
+## Notes
+
+The full path to the current repo must not contain space characters. Having space characters in the path will cause openssl-lib build to fail. 
+
+## Endpoints
+
+Base URL: `localhost:3000/`
+
 `/tasks` :
 - `GET` : Lists all tasks
 - `POST` : Create a task
