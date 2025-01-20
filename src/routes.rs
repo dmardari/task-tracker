@@ -5,6 +5,7 @@ use axum::{Extension, Json, Router};
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+
 type Database = Extension<Arc<PrismaClient>>;
 
 pub fn create_route() -> Router {
@@ -26,31 +27,54 @@ async fn list_tasks(db: Database) -> Result<Json<Vec<task::Data>>, (StatusCode, 
     Ok(Json::from(tasks))
 }
 
-async fn create_task(Json(payload): Json<CreateTask>) -> (StatusCode, Json<Task>) {
-    let task = Task {
-        id: 1337,
-        description: payload.description,
+async fn create_task(
+    db: Database,
+    Json(payload): Json<CreateTask>,
+) -> Result<Json<task::Data>, (StatusCode, String)> {
+    let task = match db.task().create(payload.description, vec![]).exec().await {
+        Ok(data) => data,
+        Err(e) => {
+            println!("Unable to create task: {e}");
+            todo!("handle the error");
+        }
     };
-    (StatusCode::CREATED, Json(task))
+    Ok(Json::from(task))
 }
 
-async fn complete_task(Path(_id): Path<u32>) -> (StatusCode, Json<String>) {
-    let message = "Not Yet Implemented";
-    (StatusCode::NOT_IMPLEMENTED, Json(message.to_owned()))
+async fn complete_task(
+    db: Database,
+    Path(id): Path<String>,
+) -> Result<Json<task::Data>, (StatusCode, String)> {
+    let task = match db
+        .task()
+        .update(
+            task::id::equals(id.clone()),
+            vec![task::completed::set(true)],
+        )
+        .exec()
+        .await
+    {
+        Ok(data) => data,
+        Err(e) => {
+            println!("Unable to update the task {id}: {e}");
+            todo!("handle the error");
+        }
+    };
+    Ok(Json::from(task))
 }
 
-async fn delete_task(Path(_id): Path<u32>) -> (StatusCode, Json<String>) {
-    let message = "Not Yet Implemented";
-    (StatusCode::NOT_IMPLEMENTED, Json(message.to_owned()))
+async fn delete_task(db: Database, Path(id): Path<String>) -> StatusCode {
+    let task = match db.task().delete(task::id::equals(id.clone())).exec().await {
+        Ok(data) => data,
+        Err(e) => {
+            println!("Unable to delete the task {id}: {e}");
+            todo!("handle the error");
+        }
+    };
+    StatusCode::NO_CONTENT
 }
 
 #[derive(Deserialize)]
 struct CreateTask {
-    description: String,
-}
-
-#[derive(Serialize)]
-struct Task {
-    id: u64,
     description: String,
 }
